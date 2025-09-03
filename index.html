@@ -6,104 +6,150 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.css" rel="stylesheet">
 <style>
-body, html { margin:0; padding:0; height:100%; font-family:sans-serif; }
-#map { height:100vh; width:100%; }
-.request-container { position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:8px; z-index:10; }
-.request-card { background:white; padding:6px; border-radius:6px; width:220px; font-size:14px; direction:rtl; box-shadow:0 0 6px rgba(0,0,0,0.3); }
-.btn { margin-top:6px; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; width:100%; }
-.accept { background:green; color:white; }
-.cancel { background:red; color:white; }
-.timer { text-align:center; font-weight:bold; margin-top:4px; }
+  body, html { margin:0; padding:0; height:100%; font-family:sans-serif; }
+  #map { height:100vh; width:100%; }
+  .request-slide { position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:6px; z-index:10; }
+  .request-card { background:white; padding:6px; border-radius:6px; box-shadow:0 0 6px rgba(0,0,0,0.3); width:220px; direction:rtl; font-size:14px; }
+  .orange { color:orange; font-weight:bold; }
+  .blue { color:dodgerblue; font-weight:bold; }
+  .btn { margin-top:6px; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; width:100%; }
+  .accept { background:green; color:white; }
+  .timer { font-weight:bold; text-align:center; margin-top:4px; }
 </style>
 </head>
 <body>
+
 <div id="map"></div>
-<div class="request-container" id="request-container"></div>
+<div class="request-slide" id="request-slide"></div>
+
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.js"></script>
 <script>
 mapboxgl.accessToken = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImY0ZjVlYmQ0ZjBiNjQ2YzE4NDdkMGNmNDE4MDEyZWEwIn0=';
 
-let map = new mapboxgl.Map({
-container:'map',
-style:'mapbox://styles/mapbox/streets-v12',
-center:[51.3890,35.6892],
-zoom:13
-});
+// Variables
+let tripHistory = "";
+let tripCount = 0;
+let cancelReason = "";
+let driverMarkerStatus = "";
 
-let driverMarker = new mapboxgl.Marker({color:'black'}).setLngLat([51.3890,35.6892]).addTo(map);
-
+// Trips data
 let trips = [
-{code:"S001", fare:25000, from:[51.3890,35.6892], to:[51.4000,35.7000]},
-{code:"S002", fare:30000, from:[51.3870,35.6895], to:[51.4050,35.6950]},
-{code:"S003", fare:20000, from:[51.3900,35.6920], to:[51.4100,35.6990]}
+  {id:"S001", fare:25000, origin:[51.3890,35.6892], destination:[51.4000,35.7000]},
+  {id:"S002", fare:30000, origin:[51.3870,35.6895], destination:[51.4050,35.6950]},
+  {id:"S003", fare:20000, origin:[51.3900,35.6920], destination:[51.4100,35.6990]}
 ];
 
+// Initialize map
+let map = new mapboxgl.Map({
+    container:'map',
+    style:'mapbox://styles/mapbox/streets-v12',
+    center:trips[0].origin,
+    zoom:13
+});
+
+// Driver marker
+let driverMarker = new mapboxgl.Marker({color:'black'})
+    .setLngLat(trips[0].origin)
+    .addTo(map);
+
+// Show simultaneous requests
 function showTrips(){
-let container = document.getElementById("request-container");
-container.innerHTML="";
-trips.forEach(trip=>{
-let card=document.createElement("div");
-card.className="request-card";
-card.innerHTML=`
-<div>From: ${trip.from[1].toFixed(4)}, ${trip.from[0].toFixed(4)}</div>
-<div>To: ${trip.to[1].toFixed(4)}, ${trip.to[0].toFixed(4)}</div>
-<div>Fare: ${trip.fare}</div>
-<div class="timer">15</div>
-<button class="btn accept" disabled>Accept Trip</button>
-<button class="btn cancel">Cancel Trip</button>
-`;
-container.appendChild(card);
+  let slideContainer = document.getElementById("request-slide");
+  slideContainer.innerHTML = "";
 
-let timerEl=card.querySelector('.timer');
-let acceptBtn=card.querySelector('.accept');
-let cancelBtn=card.querySelector('.cancel');
+  trips.forEach(trip=>{
+    let card = document.createElement("div");
+    card.className="request-card";
+    card.innerHTML=`
+      <div><span class="orange">Origin</span>: ${trip.origin[1].toFixed(4)}, ${trip.origin[0].toFixed(4)}</div>
+      <div><span class="blue">Destination</span>: ${trip.destination[1].toFixed(4)}, ${trip.destination[0].toFixed(4)}</div>
+      <div>Fare: ${trip.fare}</div>
+      <div>Trip ID: ${trip.id}</div>
+      <div class="timer">15</div>
+      <button class="btn accept" disabled>Accept Trip</button>
+    `;
+    slideContainer.appendChild(card);
 
-let count=15;
-let interval=setInterval(()=>{
-count--;
-timerEl.innerText=count;
-if(count<=0){ clearInterval(interval); card.remove(); }
-},1000);
+    let timerEl = card.querySelector('.timer');
+    let acceptBtn = card.querySelector('.accept');
 
-setTimeout(()=>{ acceptBtn.disabled=false; },3000);
+    let count = 15;
+    let interval = setInterval(()=>{
+      count--;
+      timerEl.innerText=count;
+      if(count<=0){
+        clearInterval(interval);
+        card.remove();
+        cancelReason="Driver did not accept";
+        recordHistory("cancel", trip);
+      }
+    },1000);
 
-acceptBtn.onclick=()=>{
-clearInterval(interval);
-container.innerHTML="";
-drawRoute(trip);
-};
+    setTimeout(()=>{ acceptBtn.disabled=false; },3000);
 
-cancelBtn.onclick=()=>{
-clearInterval(interval);
-card.remove();
-};
-});
+    acceptBtn.onclick=()=>{
+      clearInterval(interval);
+      slideContainer.innerHTML="";
+      drawRoute(trip);
+    };
+  });
 }
 
+// Draw route
 function drawRoute(trip){
-let url=`https://api.mapbox.com/directions/v5/mapbox/driving/${trip.from[0]},${trip.from[1]};${trip.to[0]},${trip.to[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
-fetch(url).then(res=>res.json()).then(data=>{
-let route=data.routes[0].geometry.coordinates;
-if(map.getSource('route')){
-map.getSource('route').setData({type:'Feature',geometry:{type:'LineString',coordinates:route}});
-}else{
-map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:route}}});
-map.addLayer({id:'route',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'orange','line-width':4}});
-}
-moveDriver(route);
-});
+  let url=`https://api.mapbox.com/directions/v5/mapbox/driving/${trip.origin[0]},${trip.origin[1]};${trip.destination[0]},${trip.destination[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
+
+  fetch(url).then(res=>res.json()).then(data=>{
+    let route=data.routes[0].geometry.coordinates;
+    if(map.getSource('route')){
+      map.getSource('route').setData({type:'Feature', geometry:{type:'LineString', coordinates:route}});
+    } else {
+      map.addSource('route',{type:'geojson', data:{type:'Feature', geometry:{type:'LineString', coordinates:route}}});
+      map.addLayer({id:'route', type:'line', source:'route', layout:{'line-join':'round','line-cap':'round'}, paint:{'line-color':'orange','line-width':4}});
+    }
+    moveDriver(route, trip);
+  });
 }
 
-function moveDriver(route){
-let step=0;
-let interval=setInterval(()=>{
-driverMarker.setLngLat(route[step]);
-step++;
-if(step>=route.length){ clearInterval(interval); alert("Trip completed"); }
-},100);
+// Move driver on route
+function moveDriver(route, trip){
+  let step=0;
+  let interval=setInterval(()=>{
+    driverMarker.setLngLat(route[step]);
+    step++;
+    if(step>=route.length){
+      clearInterval(interval);
+      arriveDestination(trip);
+    }
+  },100);
+}
+
+// Arrive destination
+function arriveDestination(trip){
+  alert("Passenger arrived at destination");
+  driverMarkerStatus="Completed";
+  recordHistory("complete", trip);
+}
+
+// Record history
+function recordHistory(type, trip){
+  tripCount++;
+  let now=new Date();
+  let date=now.toLocaleDateString('en-GB');
+  let time=now.toLocaleTimeString('en-GB');
+
+  if(type==="complete"){
+    tripHistory+=`Trip completed:\nFare:${trip.fare}\nOrigin:${trip.origin}\nDestination:${trip.destination}\nDate:${date}\nTime:${time}\nTrip ID:${trip.id}\n\n`;
+  } else if(type==="cancel"){
+    tripHistory+=`Trip canceled. Reason:${cancelReason}\nOrigin:${trip.origin}\nDestination:${trip.destination}\nDate:${date}\nTime:${time}\nTrip ID:${trip.id}\n\n`;
+  }
+
+  try{ window.parent.setVariable('tripHistory', tripHistory); } catch(e){}
+  try{ window.parent.setVariable('tripCount', tripCount); } catch(e){}
+  try{ window.parent.setVariable('driverMarkerStatus', driverMarkerStatus); } catch(e){}
 }
 
 showTrips();
 </script>
 </body>
-  </html>
+</html>
