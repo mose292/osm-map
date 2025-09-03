@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Driver Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.css" rel="stylesheet">
+<style>
+body, html { margin:0; padding:0; height:100%; font-family:sans-serif; }
+#map { height:100vh; width:100%; }
+.request-container { position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:8px; z-index:10; }
+.request-card { background:white; padding:6px; border-radius:6px; width:220px; font-size:14px; direction:rtl; box-shadow:0 0 6px rgba(0,0,0,0.3); }
+.btn { margin-top:6px; padding:6px 8px; border:none; border-radius:6px; cursor:pointer; width:100%; }
+.accept { background:green; color:white; }
+.cancel { background:red; color:white; }
+.timer { text-align:center; font-weight:bold; margin-top:4px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="request-container" id="request-container"></div>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.js"></script>
+<script>
+mapboxgl.accessToken = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImY0ZjVlYmQ0ZjBiNjQ2YzE4NDdkMGNmNDE4MDEyZWEwIn0=';
+
+let map = new mapboxgl.Map({
+container:'map',
+style:'mapbox://styles/mapbox/streets-v12',
+center:[51.3890,35.6892],
+zoom:13
+});
+
+let driverMarker = new mapboxgl.Marker({color:'black'}).setLngLat([51.3890,35.6892]).addTo(map);
+
+let trips = [
+{code:"S001", fare:25000, from:[51.3890,35.6892], to:[51.4000,35.7000]},
+{code:"S002", fare:30000, from:[51.3870,35.6895], to:[51.4050,35.6950]},
+{code:"S003", fare:20000, from:[51.3900,35.6920], to:[51.4100,35.6990]}
+];
+
+function showTrips(){
+let container = document.getElementById("request-container");
+container.innerHTML="";
+trips.forEach(trip=>{
+let card=document.createElement("div");
+card.className="request-card";
+card.innerHTML=`
+<div>From: ${trip.from[1].toFixed(4)}, ${trip.from[0].toFixed(4)}</div>
+<div>To: ${trip.to[1].toFixed(4)}, ${trip.to[0].toFixed(4)}</div>
+<div>Fare: ${trip.fare}</div>
+<div class="timer">15</div>
+<button class="btn accept" disabled>Accept Trip</button>
+<button class="btn cancel">Cancel Trip</button>
+`;
+container.appendChild(card);
+
+let timerEl=card.querySelector('.timer');
+let acceptBtn=card.querySelector('.accept');
+let cancelBtn=card.querySelector('.cancel');
+
+let count=15;
+let interval=setInterval(()=>{
+count--;
+timerEl.innerText=count;
+if(count<=0){ clearInterval(interval); card.remove(); }
+},1000);
+
+setTimeout(()=>{ acceptBtn.disabled=false; },3000);
+
+acceptBtn.onclick=()=>{
+clearInterval(interval);
+container.innerHTML="";
+drawRoute(trip);
+};
+
+cancelBtn.onclick=()=>{
+clearInterval(interval);
+card.remove();
+};
+});
+}
+
+function drawRoute(trip){
+let url=`https://api.mapbox.com/directions/v5/mapbox/driving/${trip.from[0]},${trip.from[1]};${trip.to[0]},${trip.to[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
+fetch(url).then(res=>res.json()).then(data=>{
+let route=data.routes[0].geometry.coordinates;
+if(map.getSource('route')){
+map.getSource('route').setData({type:'Feature',geometry:{type:'LineString',coordinates:route}});
+}else{
+map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:route}}});
+map.addLayer({id:'route',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'orange','line-width':4}});
+}
+moveDriver(route);
+});
+}
+
+function moveDriver(route){
+let step=0;
+let interval=setInterval(()=>{
+driverMarker.setLngLat(route[step]);
+step++;
+if(step>=route.length){ clearInterval(interval); alert("Trip completed"); }
+},100);
+}
+
+showTrips();
+</script>
+</body>
+  </html>
