@@ -32,14 +32,15 @@ body,html{margin:0;padding:0;height:100%;font-family:sans-serif}
 {id:"S003",fare:20000,origin:[51.3900,35.6920],destination:[51.4100,35.6990]
 let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:rides[0].origin,zoom:13}
 let driverMarker=new
-mapboxgl.Marker({color:'black'}).se
+mapboxgl.Marker({color:'black'}).s
+e
 tLngLat(rides[0].origin).addTo(ma
 p)}
 (function showRides)
 {let container=document.getElementById('request-slide')
-{container.innerHTML=''}
-{rides.forEach((ride)=>
-let card=document.createElement('div')}
+{container.innerHTML=''}{rides.forEach((ride)=>
+let 
+card=document.createElement('div')}
 card.className='request-card'
 card.innerHTML='<div><span class="orange">Origin</span>: '+ride.origin[1].toFixed(4)+','+ride.origin[0].toFixed(4)+'</div>'+
 '<div><span class="blue">Destination</span>: '+ride.destination[1].toFixed(4)+','+ride.destination[0].toFixed(4)+'</div>'+
@@ -47,7 +48,7 @@ card.innerHTML='<div><span class="orange">Origin</span>: '+ride.origin[1].toFixe
 '<div>ID: '+ride.id+'</div>'+
 '<div class="timer">15</div>'+
 '<button class="btn accept" disabled>Accept</button>'
-container.appendChild(card)
+cotainer.appendChild(card)
 {let timerEl=card.querySelector(timer)
 {let acceptBtn=card.querySelector(accept)
 {let count=15}
