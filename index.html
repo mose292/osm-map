@@ -2,100 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DriverMap</title>
+<title>DriverMapTest</title>
 <meta name="viewport"content="width=device-width,initial-scale=1.0">
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.css"rel="stylesheet">
 <style>
 body,html{margin:0;padding:0;height:100%;font-family:sans-serif}
 #map{height:100vh;width:100%}
-.request-slide{id="request-slide"}
-.request-card{background:white;padding:6px;border-radius:6px;box-shadow:0 0 6px rgba(0,0,0,0.3);width:220px;direction:rtl;font-size:14px}
-.orange{color:orange;font-weight:bold}
-.blue{color:dodgerblue;font-weight:bold}
-.btn{margin-top:6px;padding:6px 8px;border:none;border-radius:6px;cursor:pointer;width:100%}
-.accept{background:green;color:white}
-.timer{text-align:center;font-weight:bold;margin-top:4px}
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div class="request-slide"id="request-slide"></div>
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.js"></script>
 <script>
 {mapboxgl.accessToken='eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImY0ZjVlYmQ0ZjBiNjQ2YzE4NDdkMGNmNDE4MDEyZWEwIn0='}
-{let historyText=''}
-{let historyCount=0}
-{let cancelReason=''}
-{let driverStatus=''}
-{let rides=[{id:"S001",fare:25000,origin:[51.3890,35.6892],destination:[51.4000,35.7000]
-{id:"S002",fare:30000,origin:[51.3870,35.6895],destination:[51.4050,35.6950]
-{id:"S003",fare:20000,origin:[51.3900,35.6920],destination:[51.4100,35.6990]
-let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:rides[0].origin,zoom:13}
-let driverMarker=new
-mapboxgl.Marker({color:'black'}).s
-e
-tLngLat(rides[0].origin).addTo(ma
-p)}
-(function showRides)
-{let container=document.getElementById('request-slide')
-{container.innerHTML=''}{rides.forEach((ride)=>
-let 
-card=document.createElement('div')}
-card.className='request-card'
-card.innerHTML='<div><span class="orange">Origin</span>: '+ride.origin[1].toFixed(4)+','+ride.origin[0].toFixed(4)+'</div>'+
-'<div><span class="blue">Destination</span>: '+ride.destination[1].toFixed(4)+','+ride.destination[0].toFixed(4)+'</div>'+
-'<div>Fare: '+ride.fare+'</div>'+
-'<div>ID: '+ride.id+'</div>'+
-'<div class="timer">15</div>'+
-'<button class="btn accept" disabled>Accept</button>'
-cotainer.appendChild(card)
-{let timerEl=card.querySelector(timer)
-{let acceptBtn=card.querySelector(accept)
-{let count=15}
-{let interval=setInterval(()=>
-count--
-timerEl.innerText=count
-if(count<=0){clearInterval(interval)
-card.remove()
-cancelReason='Driver did not accept'
-registerHistory('Cancel',ride)
-,1000)}
-{setTimeout(()=>{acceptBtn.disabled=false},3000)}
-{acceptBtn.onclick=()=>}
-clearInterval(interval)
-container.innerHTML=''
-drawRoute(ride)}
-{function drawRoute(ride)}
-let url='https://api.mapbox.com/directions/v5/mapbox/driving/'+ride.origin[0]+','+ride.origin[1]+';'+ride.destination[0]+','+ride.destination[1]+'?geometries=geojson&access_token='+mapboxgl.accessToken
-fetch(url).then(res=>res.json()).then(data=>{
-let route=data.routes[0].geometry.coordinates
-if(map.getSource('route')){map.getSource('route').setData({type:'Feature',geometry:{type:'LineString',coordinates:route}})}
-else{map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:route}}})
-map.addLayer({id:'route',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'orange','line-width':4}})}
-moveDriver(route,ride)})}
-{function moveDriver(route,ride)}
+{let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:[51.3890,35.6892],zoom:13})}
+{let driverMarker=new mapboxgl.Marker({color:'black'}).setLngLat([51.3890,35.6892]).addTo(map)}
+{let route=[[51.3890,35.6892],[51.4000,35.7000]]}
+{map.on('load',()=>{
+map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:route}}})
+map.addLayer({id:'route',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'orange','line-width':4}})
 let step=0
 {let interval=setInterval(()=>
 driverMarker.setLngLat(route[step])
 step++
-if(step>=route.length){clearInterval(interval)
-rideFinished(ride)}
-,100)}}
-{function rideFinished(ride)} 
-{alert('Passenger reached destination')
-driverStatus='Finished'
-registerHistory('Finish',ride)}
-{function registerHistory(type,ride)}
-historyCount++
-let now=new Date()
-let date=now.toLocaleDateString('en-US')
-let time=now.toLocaleTimeString('en-US')
-if(type==='Finish'){historyText+='Ride finished: Fare:'+ride.fare+' Origin:'+ride.origin+' Destination:'+ride.destination+' Date:'+date+' Time:'+time+' ID:'+ride.id+'\n\n'}
-else if(type==='Cancel'){historyText+='Ride canceled: Reason:'+cancelReason+' Origin:'+ride.origin+' Destination:'+ride.destination+' Date:'+date+' Time:'+time+' ID:'+ride.id+'\n\n'}
-try{window.parent.setVariable('historyText',historyText)}catch(e)
-try{window.parent.setVariable('historyCount',historyCount)}catch(e)
-try{window.parent.setVariable('driverStatus',driverStatus)}catch(e)
-showRides()
+if(step>=route.length){clearInterval(interval);alert('Passenger reached destination')}
+,500)}
+})}
 </script>
 </body>
 </html>
