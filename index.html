@@ -30,7 +30,7 @@ body,html{margin:0;padding:0;height:100%;font-family:sans-serif}
 {let rides=[{id:"S001",fare:25000,origin:[51.3890,35.6892],destination:[51.4000,35.7000]},
 {id:"S002",fare:30000,origin:[51.3870,35.6895],destination:[51.4050,35.6950]},
 {id:"S003",fare:20000,origin:[51.3900,35.6920],destination:[51.4100,35.6990]}]}
-{let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:rides[0].origin,zoom:13})}
+{let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:rides[0].origin,zoom:13}
 {let driverMarker=new mapboxgl.Marker({color:'black'}).setLngLat(rides[0].origin).addTo(map)}
 {function showRides()} 
 {let container=document.getElementById('request-slide')
@@ -45,8 +45,8 @@ card.innerHTML='<div><span class="orange">Origin</span>: '+ride.origin[1].toFixe
 '<div class="timer">15</div>'+
 '<button class="btn accept" disabled>Accept</button>'
 container.appendChild(card)
-{let timerEl=card.querySelector(timer)}
-{let acceptBtn=card.querySelector(accept)}
+{let timerEl=card.querySelector(timer)
+{let acceptBtn=card.querySelector(accept)
 {let count=15}
 {let interval=setInterval(()=>
 count--
@@ -54,7 +54,7 @@ timerEl.innerText=count
 if(count<=0){clearInterval(interval)
 card.remove()
 cancelReason='Driver did not accept'
-registerHistory('Cancel',ride)}
+registerHistory('Cancel',ride)
 ,1000)}
 {setTimeout(()=>{acceptBtn.disabled=false},3000)}
 {acceptBtn.onclick=()=>}
@@ -88,9 +88,9 @@ let date=now.toLocaleDateString('en-US')
 let time=now.toLocaleTimeString('en-US')
 if(type==='Finish'){historyText+='Ride finished: Fare:'+ride.fare+' Origin:'+ride.origin+' Destination:'+ride.destination+' Date:'+date+' Time:'+time+' ID:'+ride.id+'\n\n'}
 else if(type==='Cancel'){historyText+='Ride canceled: Reason:'+cancelReason+' Origin:'+ride.origin+' Destination:'+ride.destination+' Date:'+date+' Time:'+time+' ID:'+ride.id+'\n\n'}
-try{window.parent.setVariable('historyText',historyText)}catch(e){}
-try{window.parent.setVariable('historyCount',historyCount)}catch(e){}
-try{window.parent.setVariable('driverStatus',driverStatus)}catch(e){}}}
+try{window.parent.setVariable('historyText',historyText)}catch(e)
+try{window.parent.setVariable('historyCount',historyCount)}catch(e)
+try{window.parent.setVariable('driverStatus',driverStatus)}catch(e)
 showRides()
 </script>
 </body>
