@@ -31,7 +31,8 @@ body,html{margin:0;padding:0;height:100%;font-family:sans-serif}
 {id:"S002",fare:30000,origin:[51.3870,35.6895],destination:[51.4050,35.6950]
 {id:"S003",fare:20000,origin:[51.3900,35.6920],destination:[51.4100,35.6990]
 let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:rides[0].origin,zoom:13}
-let driverMarker=newmapboxgl.Marker({color:'black'}).setLngLat(rides[0].origin).addTo(map)}
+let driverMarker=new
+mapboxgl.Marker({color:'black'}).setLngLat(rides[0].origin).addTo(map)}
 (function showRides)
 {let container=document.getElementById('request-slide')
 {container.innerHTML=''}
