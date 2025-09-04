@@ -2,131 +2,37 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Driver Map</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.css" rel="stylesheet">
+<title>DriverMap</title>
+<meta name="viewport"content="width=device-width,initial-scale=1.0">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.css"rel="stylesheet">
 <style>
-body,html{margin:0;padding:0;height:100%;font-family:sans-serif}
-#map{height:100vh;width:100%}
-.request-slide{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:10}
-.request-card{background:white;padding:6px;border-radius:6px;box-shadow:0 0 6px rgba(0,0,0,0.3);width:220px;direction:rtl;font-size:14px}
-.orange{color:orange;font-weight:bold}
-.blue{color:dodgerblue;font-weight:bold}
-.btn{margin-top:6px;padding:6px 8px;border:none;border-radius:6px;cursor:pointer;width:100%}
-.accept{background:green;color:white}
-.timer{text-align:center;font-weight:bold;margin-top:4px}
+body,html{margin:0;padding:0;height:100%;font-family:sans-serif;}
+#map{height:100vh;width:100%;}
+.request-slide{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:10;}
+.request-card{background:white;padding:6px;border-radius:6px;box-shadow:006pxrgba(0,0,0,0.3);width:220px;direction:rtl;font-size:14px;}
+.orange{color:orange;font-weight:bold;}
+.blue{color:dodgerblue;font-weight:bold;}
+.btn{margin-top:6px;padding:6px 8px;border:none;border-radius:6px;cursor:pointer;width:100%;}
+.accept{background:green;color:white;}
+.timer{text-align:center;font-weight:bold;margin-top:4px;}
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div class="request-slide" id="request-slide"></div>
+<div class="request-slide"id="request-slide"></div>
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.20.1/mapbox-gl.js"></script>
 <script>
-mapboxgl.accessToken='eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImY0ZjVlYmQ0ZjBiNjQ2YzE4NDdkMGNmNDE4MDEyZWEwIn0='
-
-let tripHistory=""
-let historyCounter=0
-let cancelReason="request"
-let driverOn=0
-let passengerRequest=0
-let endStatus=""
-
-let trips=[
-{id:"S001",fare:25000,origin:[51.3890,35.6892],destination:[51.4000,35.7000]},
-{id:"S002",fare:30000,origin:[51.3870,35.6895],destination:[51.4050,35.6950]},
-{id:"S003",fare:20000,origin:[51.3900,35.6920],destination:[51.4100,35.6990]}
-]
-
-let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:trips[0].origin,zoom:13})
-
-let driverMarker=new mapboxgl.Marker({color:'black'}).setLngLat(trips[0].origin).addTo(map)
-
-function showTrips(){
-driverOn=1
-passengerRequest=1
-let slide=document.getElementById('request-slide')
-slide.innerHTML=''
-trips.forEach(trip=>{
-let card=document.createElement('div')
-card.className='request-card'
-card.innerHTML=`<div><span class="orange">Origin</span>: ${trip.origin[1].toFixed(4)}, ${trip.origin[0].toFixed(4)}</div>
-<div><span class="blue">Destination</span>: ${trip.destination[1].toFixed(4)}, ${trip.destination[0].toFixed(4)}</div>
-<div>Fare: ${trip.fare}</div>
-<div>Trip ID: ${trip.id}</div>
-<div class="timer">15</div>
-<button class="btn accept" disabled>Accept</button>`
-slide.appendChild(card)
-let timerEl=card.querySelector('.timer')
-let acceptBtn=card.querySelector('.accept')
-let count=15
-let interval=setInterval(()=>{
-count--
-timerEl.innerText=count
-if(count<=0){
-clearInterval(interval)
-card.remove()
-cancelReason="Driver did not accept"
-updateHistory("cancel",trip)
-}
-},1000)
-setTimeout(()=>{acceptBtn.disabled=false},3000)
-acceptBtn.onclick=()=>{
-clearInterval(interval)
-slide.innerHTML=''
-drawRoute(trip)
-}
-})
-}
-
-function drawRoute(trip){
-let url=`https://api.mapbox.com/directions/v5/mapbox/driving/${trip.origin[0]},${trip.origin[1]};${trip.destination[0]},${trip.destination[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`
-fetch(url).then(res=>res.json()).then(data=>{
-let route=data.routes[0].geometry.coordinates
-if(map.getSource('route')){
-map.getSource('route').setData({type:'Feature',geometry:{type:'LineString',coordinates:route}})
-}else{
-map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:route}}})
-map.addLayer({id:'route',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'orange','line-width':4}})
-}
-moveDriver(route,trip)
-})
-}
-
-function moveDriver(route,trip){
-let step=0
-let interval=setInterval(()=>{
-driverMarker.setLngLat(route[step])
-step++
-if(step>=route.length){
-clearInterval(interval)
-endTrip(trip)
-}
-},100)
-}
-
-function endTrip(trip){
-alert("Passenger arrived")
-endStatus="finished"
-updateHistory("end",trip)
-}
-
-function updateHistory(type,trip){
-historyCounter++
-let now=new Date()
-let date=now.toLocaleDateString('en-US')
-let time=now.toLocaleTimeString('en-US')
-if(type==="end"){
-tripHistory+=`Trip finished:\nFare:${trip.fare}\nOrigin:${trip.origin}\nDestination:${trip.destination}\nDate:${date}\nTime:${time}\nTrip ID:${trip.id}\n\n`
-}else if(type==="cancel"){
-tripHistory+=`Trip cancelled. Reason:${cancelReason}\nOrigin:${trip.origin}\nDestination:${trip.destination}\nDate:${date}\nTime:${time}\nTrip ID:${trip.id}\n\n`
-}
-try{window.parent.setVariable('tripHistory',tripHistory)}catch(e){}
-try{window.parent.setVariable('historyCounter',historyCounter)}catch(e){}
-try{window.parent.setVariable('endStatus',endStatus)}catch(e){}
-try{window.parent.setVariable('cancelReason',cancelReason)}catch(e){}
-}
-
-showTrips()
+mapboxgl.accessToken='eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImY0ZjVlYmQ0ZjBiNjQ2YzE4NDdkMGNmNDE4MDEyZWEwIn0=';
+let historyText="",historyCounter=0,cancelReason="request",driverStatus="",requestFlag=0;
+let trips=[{id:"S001",fare:25000,origin:[51.3890,35.6892],destination:[51.4000,35.7000]},{id:"S002",fare:30000,origin:[51.3870,35.6895],destination:[51.4050,35.6950]},{id:"S003",fare:20000,origin:[51.3900,35.6920],destination:[51.4100,35.6990]}];
+let map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/streets-v12',center:trips[0].origin,zoom:13});
+let driverMarker=new mapboxgl.Marker({color:'black'}).setLngLat(trips[0].origin).addTo(map);
+function showRequests(){requestFlag=1;let slide=document.getElementById('request-slide');slide.innerHTML='';trips.forEach(trip=>{let card=document.createElement('div');card.className='request-card';card.innerHTML='<div><span class="orange">Origin</span>:'+trip.origin[1].toFixed(4)+','+trip.origin[0].toFixed(4)+'</div><div><span class="blue">Destination</span>:'+trip.destination[1].toFixed(4)+','+trip.destination[0].toFixed(4)+'</div><div>Fare:'+trip.fare+'</div><div>ID:'+trip.id+'</div><div class="timer">15</div><button class="btn accept" disabled>Accept</button>';slide.appendChild(card);let timerEl=card.querySelector('.timer');let acceptBtn=card.querySelector('.accept');let count=15;let interval=setInterval(()=>{count--;timerEl.innerText=count;if(count<=0){clearInterval(interval);card.remove();cancelReason='driver did not accept';saveHistory('cancel',trip);}},1000);setTimeout(()=>{acceptBtn.disabled=false;},3000);acceptBtn.onclick=()=>{clearInterval(interval);slide.innerHTML='';drawRoute(trip);};});}
+function drawRoute(trip){let url='https://api.mapbox.com/directions/v5/mapbox/driving/'+trip.origin[0]+','+trip.origin[1]+';'+trip.destination[0]+','+trip.destination[1]+'?geometries=geojson&access_token='+mapboxgl.accessToken;fetch(url).then(r=>r.json()).then(d=>{let coords=d.routes[0].geometry.coordinates;if(map.getSource('route')){map.getSource('route').setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});}else{map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:coords}}});map.addLayer({id:'route',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'orange','line-width':4}});}moveDriver(coords,trip);});}
+function moveDriver(route,trip){let step=0;let interval=setInterval(()=>{driverMarker.setLngLat(route[step]);step++;if(step>=route.length){clearInterval(interval);reachDestination(trip);}},100);}
+function reachDestination(trip){alert('Passenger arrived');driverStatus='finished';saveHistory('finish',trip);}
+function saveHistory(type,trip){historyCounter++;let now=new Date();let date=now.toLocaleDateString('en-US');let time=now.toLocaleTimeString('en-US');if(type==='finish'){historyText+='Trip completed: Fare:'+trip.fare+' Origin:'+trip.origin+' Destination:'+trip.destination+' Date:'+date+' Time:'+time+' ID:'+trip.id+'\n';}else{historyText+='Trip cancelled: Reason:'+cancelReason+' Origin:'+trip.origin+' Destination:'+trip.destination+' Date:'+date+' Time:'+time+' ID:'+trip.id+'\n';}try{window.parent.setVariable('historyText',historyText);}catch(e){}try{window.parent.setVariable('historyCounter',historyCounter);}catch(e){}try{window.parent.setVariable('driverStatus',driverStatus);}catch(e){}}
+showRequests();
 </script>
 </body>
 </html>
